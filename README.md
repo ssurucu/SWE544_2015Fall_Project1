@@ -11,7 +11,11 @@ Commit List
 2) Commit:3043bdf 03/12/2015
     - Git integration with PyCharm has been established, committing form the IDE has been tried with an update to ReadME file.
     
-3) Commit: 04/12/2015
+3) Commit:4d07c2a 04/12/2015
     - UI with QT Designer has been created, a draft version of the UI has been added to the application.
     - Basic client and server connection has been established without any protocol rule/definitions
     - UX/UI controls and basic features has been added. (e.g. Send button is disabled when message text is empty, Enter button can be used for sending messages in the message text area.)
+
+4) Commit: 09/12/2015
+    - Server connection to 178.233.19.205:12345 has been established, just a dummy one getting TIC message only
+    - 2 threads beyond main thread have been added, after running the app, Read and Write threads start
