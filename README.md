@@ -16,6 +16,15 @@ Commit List
     - Basic client and server connection has been established without any protocol rule/definitions
     - UX/UI controls and basic features has been added. (e.g. Send button is disabled when message text is empty, Enter button can be used for sending messages in the message text area.)
 
-4) Commit: 09/12/2015
+4) Commit:6e1f3fc 09/12/2015
     - Server connection to 178.233.19.205:12345 has been established, just a dummy one getting TIC message only
     - 2 threads beyond main thread have been added, after running the app, Read and Write threads start
+    
+5) Commit: 10/12/2015
+    - Threads construction have been changed, because of the while loops, the GUI is frozen so thread mechanism has been revised. In this new version QtCore.QThread is used, and the threads working without blocking the GUI.
+    - Queue mechanism has been implemented:
+        *  WriteQThread is listening to threadQueue, if threadQueue has any element, it is pushed to the socket.
+        *  ReadQThread is listenining to screenQueue, if screenQueue has any element, it is showed in the MessageView of GUI. Any message from server or written in textbox in the GUI, are added to the screenQueue.
+    - updateChannelWindow is called if any need to the refreshing the MessageWindow, and this function reads screenQueue and puts it in the MessageView.
+    - sendMessage has been implemented, if any message is written in the textbox and press send, the text will be added to the threadQueue and screenqueue.
+    
