@@ -8,6 +8,7 @@ import time
 
 screenQueue = Queue.Queue()
 threadQueue = Queue.Queue()
+onlineMemberQueue = Queue.Queue()
 s = socket.socket()
 
 
@@ -32,6 +33,17 @@ class ClientDialog(QtGui.QMainWindow):
 
         self.threads = []
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.updateChannelWindow)
+        self.timer.start(10)
+
+        self.timer2 = QtCore.QTimer()
+        self.timer2.timeout.connect(self.memberListRefresh)
+        self.timer2.start(1500)
+
+        self.timer3 = QtCore.QTimer()
+        self.timer3.timeout.connect(self.memberListGet)
+        self.timer3.start(1500)
 
         readerThread = ReadQThread()
         readerThread.data_downloaded.connect(self.updateChannelWindow)
@@ -43,23 +55,41 @@ class ClientDialog(QtGui.QMainWindow):
         self.threads.append(writerThread)
         writerThread.start()
 
+    # this function controls of the availability of the sendMessage button
     def statusSendButton(self):
         if self.ui.messageTextLine.text():
             self.ui.sendMessageButton.setEnabled(True)
         if not self.ui.messageTextLine.text():
             self.ui.sendMessageButton.setEnabled(False)
 
-    # this function adds message text to the screenqueue
     def sendMessage(self):
-        if self.ui.messageTextLine.text():
-            # to add to the messageScreen
-            screenQueue.put("-Local-: " + self.ui.messageTextLine.text())
-            # to send to the server
-            threadQueue.put(self.ui.messageTextLine.text())
-            self.ui.messageTextLine.setText("")
+        self.outgoing_parser(self.ui.messageTextLine.text())
+        self.ui.messageTextLine.setText("")
 
+    def outgoing_parser(self, data):
+        if data[0] == "/":
+            if data[1:4] == "msg":
+                rest = str(data[5:]).partition(' ')
+                threadQueue.put(str(("MSG ") + rest[0] + ":" + rest[2]))
+                screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " " + data)
+            elif data[1:5] == "nick":
+                rest = data[6:]
+                threadQueue.put(str(("USR ") + str(rest)))
+                screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " " + data)
+            elif data[1:5] == "quit":
+                threadQueue.put(str("QUI"))
+            else:
+                screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " -Local-: " + data)
+                screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " -Local-: Command error")
+        else:
+            threadQueue.put(str("SAY " + data))
+            screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " -Local-: " + data)
+            print data
+
+    # a shortcut for sending private message, when click on a user from online users list, it will put the needed command in the textbox
     def item_click(self, item):
-        print item
+        print str(item.text())
+        self.ui.messageTextLine.setText("/msg " + item.text() + " ")
 
     # this function gets item(s) from screenqueue (if any exits) and adds to messageScreen
     def updateChannelWindow(self):
@@ -68,9 +98,16 @@ class ClientDialog(QtGui.QMainWindow):
             self.ui.listWidget.addItem(unicode(queue_message))
             self.ui.listWidget.scrollToBottom()
 
+    # sends LSQ command frequently to get the online users list
+    def memberListGet(self):
+        threadQueue.put('LSQ')
+
     def memberListRefresh(self):
-        for x in range(0, 3):
-            self.ui.onlineMembersList.addItem(str(x) + "_Sinan Can")
+        self.ui.onlineMembersCountLabel.setText(str(self.ui.onlineMembersList.count()))
+        self.ui.onlineMembersList.clear()
+        while onlineMemberQueue.qsize() > 0:
+            onlineUser = onlineMemberQueue.get()
+            self.ui.onlineMembersList.addItem(unicode(onlineUser))
         self.ui.onlineMembersCountLabel.setText(str(self.ui.onlineMembersList.count()))
 
     def connectToIRCServer(self):
@@ -84,17 +121,9 @@ class ClientDialog(QtGui.QMainWindow):
         s.connect((host, port))
 
         self.ui.listWidget.addItem('Now you are connected to the server! Feel free to chat')
+        self.ui.listWidget.addItem('Send message as /nick {nickname} to see who are online! ')
         self.ui.listWidget.addItem('---------------------------------------------------')
 
-        # _WriteThread = threading.Thread(target=WriteThread, args={"WriteThread", s, sendQueue})
-        # _WriteThread.start()
-        # _WriteThread.join()
-
-        # _ReadThread = threading.Thread(target=ReadThread, args={self, "ReadThread", s, sendQueue, screenQueue})
-        # _ReadThread.start()
-        # _ReadThread.join()
-
-        print s.recv(1024)
         s.close
 
 
@@ -107,9 +136,47 @@ class ReadQThread(QtCore.QThread):
     def run(self):
         while True:
             data = s.recv(1024)
-            if data != "":
-                screenQueue.put("-Server-: " + unicode(data))
-                self.data_downloaded.emit('%s' % (data))
+            self.incoming_parser(data)
+            self.data_downloaded.emit('%s' % (data))
+
+    def incoming_parser(self, data):
+        print data
+        if data[0:3] == "TIC":
+            # threadQueue.put("TOC")
+            print ''
+        if data[0:3] == "HEL":
+            screenQueue.put(
+                time.strftime("[%H:%M:%S]", time.gmtime()) + " -Server-: Welcome aboard!Registered as <" + data[
+                                                                                                           4:] + ">")
+        if data[0:3] == "REJ":
+            screenQueue.put(time.strftime("[%H:%M:%S]",
+                                          time.gmtime()) + " -Server-: There is already a user, choose another nickname")
+        if data[0:3] == "BYE":
+            sys.exit(app.exec_())
+        if data[0:3] == "LSA":
+            onlineMemberList = data[4:].split(':')
+            for x in onlineMemberList:
+                onlineMemberQueue.put(str(x))
+        if data[0:3] == "TOC":
+            print ''
+        if data[0:3] == "SAY":
+            text = data[4:].split(':')
+            screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " <" + str(text[0]) + ">: " + str(text[1]))
+        if data[0:6] == "TICSAY":
+            text = data[7:].split(':')
+            screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " <" + str(text[0]) + ">: " + str(text[1]))
+        if data[0:3] == "MNO":
+            print ''
+        if data[0:3] == "MSG":
+            text = data[4:].split(':')
+            screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " *" + str(text[0]) + "*: " + str(text[1]))
+        if data[0:3] == "ERR":
+            print ''
+        if data[0:3] == "ERL":
+            print ''
+        if data[0:3] == "SYS":
+            print "S_" + (data)
+            screenQueue.put(time.strftime("[%H:%M:%S]", time.gmtime()) + " -Server-: " + data[4:])
 
 
 class WriteQThread(QtCore.QThread):
@@ -133,5 +200,5 @@ class WriteQThread(QtCore.QThread):
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     myapp = ClientDialog()
-    #myapp.show()
+    # myapp.show()
     sys.exit(app.exec_())

@@ -20,7 +20,7 @@ Commit List
     - Server connection to 178.233.19.205:12345 has been established, just a dummy one getting TIC message only
     - 2 threads beyond main thread have been added, after running the app, Read and Write threads start
     
-5) Commit: 10/12/2015
+5) Commit:81bad12 10/12/2015
     - Threads construction have been changed, because of the while loops, the GUI is frozen so thread mechanism has been revised. In this new version QtCore.QThread is used, and the threads working without blocking the GUI.
     - Queue mechanism has been implemented:
         *  WriteQThread is listening to threadQueue, if threadQueue has any element, it is pushed to the socket.
@@ -28,3 +28,7 @@ Commit List
     - updateChannelWindow is called if any need to the refreshing the MessageWindow, and this function reads screenQueue and puts it in the MessageView.
     - sendMessage has been implemented, if any message is written in the textbox and press send, the text will be added to the threadQueue and screenqueue.
     
+6) Commit: 11/12/2015
+    - incoming and outgoing parsers are added, more tests and checks will be done on these parsers
+    - Online members list is implemented. It is refreshing regularly to get the latest list of the online users.
+    - Live test has been executed today. Another student working on the project was online in the system (not planned, we do not know each other also), and we talked for a while on the IRC and tested our applications.  
