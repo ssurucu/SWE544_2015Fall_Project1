@@ -28,7 +28,12 @@ Commit List
     - updateChannelWindow is called if any need to the refreshing the MessageWindow, and this function reads screenQueue and puts it in the MessageView.
     - sendMessage has been implemented, if any message is written in the textbox and press send, the text will be added to the threadQueue and screenqueue.
     
-6) Commit: 11/12/2015
+6) Commit:c54a76c 11/12/2015
     - incoming and outgoing parsers are added, more tests and checks will be done on these parsers
     - Online members list is implemented. It is refreshing regularly to get the latest list of the online users.
-    - Live test has been executed today. Another student working on the project was online in the system (not planned, we do not know each other also), and we talked for a while on the IRC and tested our applications.  
+    - Live test has been executed today. Another student working on the project was online in the system (not planned, we do not know each other also), and we talked for a while on the IRC and tested our applications. 
+     
+7) Commit: 13/12/2015
+    - Hostname/port is taken by command line from user
+    - Incoming protocol rules and messages are controlled and fixed
+    - Comments has been added in the codes
